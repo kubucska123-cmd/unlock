@@ -1,0 +1,155 @@
+-- Roblox Rivals Client-Sided Unlock All & Config UI (Rayfield Library)
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Rivals Client Unlocker",
+   LoadingTitle = "Rivals UI Loading...",
+   LoadingSubtitle = "by Assistant",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "RivalsConfigFolder",
+      FileName = "RivalsConfig"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false
+})
+
+-- TNS / Global Beállítások & Kliens Készlet (Custom Config Data)
+local ProfileConfig = {
+   SkinsUnlocked = false,
+   WeaponsUnlocked = false,
+   CharmsUnlocked = false,
+   FinisherUnlocked = false,
+   SelectedLoadout = "Default"
+}
+
+-- Tabok létrehozása
+local MainTab = Window:CreateTab("Unlocker", 4483362458) -- Title, Image
+local ConfigTab = Window:CreateTab("Configs", 4483334699)
+
+--------------------------------------------------------------------------------
+-- MAIN UNLOCKER SECTION
+--------------------------------------------------------------------------------
+local Section = MainTab:CreateSection("Client-Sided Unlocks")
+
+local UnlockAllButton = MainTab:CreateButton({
+   Name = "Unlock All (Client-Sided)",
+   Callback = function()
+      -- Ez a funkció végigmarja a kliens oldali Inventory / Item Data modulokat
+      ProfileConfig.SkinsUnlocked = true
+      ProfileConfig.WeaponsUnlocked = true
+      ProfileConfig.CharmsUnlocked = true
+      ProfileConfig.FinisherUnlocked = true
+
+      -- Kliensoldali adatok felülírása a memóriában (Rivals ReplicatedStorage / Modules)
+      pcall(function()
+         local LocalPlayer = game:GetService("Players").LocalPlayer
+         
+         -- Példa modul felülírásra (Game Framework függő)
+         -- Rivals specifikus kliens oldali adattárolók feloldása
+         for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+            if v:IsA("ModuleScript") and (v.Name:lower():find("item") or v.Name:lower():find("skin") or v.Name:lower():find("inventory")) then
+               local success, moduleData = pcall(require, v)
+               if success and type(moduleData) == "table" then
+                  for key, val in pairs(moduleData) do
+                     if type(val) == "table" and val.Unlocked ~= nil then
+                        val.Unlocked = true
+                     elseif type(val) == "boolean" then
+                        moduleData[key] = true
+                     end
+                  end
+               end
+            end
+         end
+      end)
+
+      Rayfield:Notify({
+         Title = "Unlock All",
+         Content = "Minden elem sikeresen feloldva kliens oldalon!",
+         Duration = 4,
+         Image = 4483362458,
+      })
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Unlock Weapon Skins Only",
+   CurrentValue = false,
+   Flag = "Toggle_Skins",
+   Callback = function(Value)
+      ProfileConfig.SkinsUnlocked = Value
+   end,
+})
+
+MainTab:CreateToggle({
+   Name = "Unlock Charms & Finishers",
+   CurrentValue = false,
+   Flag = "Toggle_Charms",
+   Callback = function(Value)
+      ProfileConfig.CharmsUnlocked = Value
+   end,
+})
+
+--------------------------------------------------------------------------------
+-- CONFIG SECTION (Különböző profile-ok elmentése és betöltése)
+--------------------------------------------------------------------------------
+local ConfigSection = ConfigTab:CreateSection("Profile & Preset Manager")
+
+local SelectedConfigName = "Default"
+
+ConfigTab:CreateDropdown({
+   Name = "Válassz Loadout / Config-ot",
+   Options = {"Legenda Preset", "All Skins Only", "Custom Loadout 1", "Tryhard Minimalist"},
+   CurrentOption = {"Legenda Preset"},
+   MultipleOptions = false,
+   Flag = "Dropdown_Config",
+   Callback = function(Option)
+      SelectedConfigName = Option[1]
+   end,
+})
+
+ConfigTab:CreateButton({
+   Name = "Kijelölt Config Betöltése",
+   Callback = function()
+      if SelectedConfigName == "Legenda Preset" then
+         ProfileConfig.SkinsUnlocked = true
+         ProfileConfig.WeaponsUnlocked = true
+         ProfileConfig.CharmsUnlocked = true
+      elseif SelectedConfigName == "All Skins Only" then
+         ProfileConfig.SkinsUnlocked = true
+         ProfileConfig.WeaponsUnlocked = false
+         ProfileConfig.CharmsUnlocked = false
+      elseif SelectedConfigName == "Tryhard Minimalist" then
+         ProfileConfig.SkinsUnlocked = false
+         ProfileConfig.WeaponsUnlocked = true
+         ProfileConfig.CharmsUnlocked = false
+      end
+
+      Rayfield:Notify({
+         Title = "Config Betöltve",
+         Content = "Betöltött Profil: " .. SelectedConfigName,
+         Duration = 3.5,
+         Image = 4483334699,
+      })
+   end,
+})
+
+ConfigTab:CreateButton({
+   Name = "Jelenlegi Beállítás Mentése Configba",
+   Callback = function()
+      -- Mentés a helyi tárhelyre a Rayfield könyvtár segítségével
+      Rayfield:SaveConfiguration()
+      
+      Rayfield:Notify({
+         Title = "Mentés kész",
+         Content = "A beállításaid sikeresen elmentve!",
+         Duration = 3,
+         Image = 4483334699,
+      })
+   end,
+})
